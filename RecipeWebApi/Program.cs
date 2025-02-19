@@ -63,7 +63,7 @@ public class Program
             pattern: "{controller}/{action}/{id?}");
 
         app.MapPost("/logout", async (SignInManager<User> signInManager,
-                [FromBody] object empty) =>
+                [FromBody] object? empty) =>
             {
                 if (empty != null)
                 {

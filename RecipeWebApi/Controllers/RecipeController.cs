@@ -126,7 +126,7 @@ public class RecipeController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int id, RecipeDto recipeDto)
     {
-        var recipeToUpdate = await _context.Recipes.Where(r => r.Id == id).Include(r => r.Ingredients).FirstAsync();
+        var recipeToUpdate = await _context.Recipes.Where(r => r.Id == id).Include(r => r.Ingredients).FirstOrDefaultAsync();
         if (recipeToUpdate == null)
         {
             return NotFound();
