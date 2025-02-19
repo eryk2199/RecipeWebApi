@@ -63,7 +63,7 @@ public class RecipeController : ControllerBase
                 Ingredients = r.Ingredients.Select(i => new Ingredient(){ Id = i.Id, Name = i.Name , Amount = i.Amount }).ToList(),
                 UserId = r.UserId,
             })
-            .FirstAsync();
+            .FirstOrDefaultAsync();
         
         if (recipe == null)
         {
@@ -111,13 +111,22 @@ public class RecipeController : ControllerBase
         };
         _context.Recipes.Add(recipe);
         await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = recipe.Id }, recipe);
+        var newRecipeDto = new RecipeDto()
+        {
+            Id = recipe.Id,
+            Title = recipeDto.Title,
+            Instructions = recipeDto.Instructions,
+            Ingredients = recipe.Ingredients
+                .Select(i => new IngredientDto() { Id = i.Id, Name = i.Name, Amount = i.Amount })
+                .ToList(),
+        };
+        return CreatedAtAction(nameof(GetById), new { id = newRecipeDto.Id }, newRecipeDto);
     }
 
-    [HttpPut("/{id}")]
-    public async Task<ActionResult> Update(int id, Recipe recipe)
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(int id, RecipeDto recipeDto)
     {
-        var recipeToUpdate = await _context.Recipes.FindAsync(id);
+        var recipeToUpdate = await _context.Recipes.Where(r => r.Id == id).Include(r => r.Ingredients).FirstAsync();
         if (recipeToUpdate == null)
         {
             return NotFound();
@@ -134,15 +143,16 @@ public class RecipeController : ControllerBase
             return BadRequest();
         }
         
-        recipeToUpdate.Title = recipe.Title;
-        recipeToUpdate.Instructions = recipe.Instructions;
-        recipeToUpdate.Ingredients = recipe.Ingredients;
+        recipeToUpdate.Title = recipeDto.Title;
+        recipeToUpdate.Instructions = recipeDto.Instructions;
+        _context.Ingredients.RemoveRange(recipeToUpdate.Ingredients);
+        recipeToUpdate.Ingredients = recipeDto.Ingredients.Select(i => new Ingredient() { Name = i.Name, Amount = i.Amount }).ToList();
 
         await _context.SaveChangesAsync();
         return Ok();
     }
 
-    [HttpDelete("/{id}")]
+    [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
         var recipe = await _context.Recipes.FindAsync(id);

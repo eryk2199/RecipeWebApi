@@ -1,5 +1,7 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RecipeWebApi.Data;
 using RecipeWebApi.Models;
@@ -34,7 +36,12 @@ public class Program
             .AddEntityFrameworkStores<AppDbContext>()
             .AddApiEndpoints();
         
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            });
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -55,6 +62,19 @@ public class Program
             name: "default",
             pattern: "{controller}/{action}/{id?}");
 
+        app.MapPost("/logout", async (SignInManager<User> signInManager,
+                [FromBody] object empty) =>
+            {
+                if (empty != null)
+                {
+                    await signInManager.SignOutAsync();
+                    return Results.Ok();
+                }
+                return Results.Unauthorized();
+            })
+            .WithOpenApi()
+            .RequireAuthorization();
+        
         app.Run();
     }
 }
